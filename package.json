@@ -1,0 +1,50 @@
+{
+  "name": "rianna-transcript-analyzer",
+  "version": "1.0.0",
+  "description": "AI-powered transcript analysis and scoring system",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "14.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "mysql2": "^3.9.1",
+    "multer": "^1.4.5-lts.1",
+    "formidable": "^3.5.1",
+    "ws": "^8.16.0",
+    "recharts": "^2.10.4",
+    "react-window": "^1.8.8",
+    "react-window-infinite-loader": "^1.0.9",
+    "framer-motion": "^11.0.3",
+    "lucide-react": "^0.321.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^2.2.1",
+    "@radix-ui/react-dialog": "^1.0.5",
+    "@radix-ui/react-progress": "^1.0.3",
+    "@radix-ui/react-select": "^2.0.0",
+    "@radix-ui/react-tabs": "^1.0.4",
+    "axios": "^1.6.7",
+    "openai": "^4.28.0",
+    "sentiment": "^5.0.2",
+    "compromise": "^14.10.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.16",
+    "@types/react": "^18.2.55",
+    "@types/react-dom": "^18.2.19",
+    "@types/react-window": "^1.8.8",
+    "@types/ws": "^8.5.10",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "14.1.0",
+    "typescript": "^5.3.3",
+    "tailwindcss": "^3.4.1",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.35"
+  }
+}
