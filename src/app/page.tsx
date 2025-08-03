@@ -1,3 +1,4 @@
+// src/app/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -13,6 +14,8 @@ import {
   Users,
   Activity
 } from 'lucide-react';
+
+// Import the components we have
 import { TranscriptList } from '@/components/TranscriptList';
 import { StatsCards } from '@/components/StatsCards';
 import { RecentActivity } from '@/components/RecentActivity';
@@ -64,7 +67,7 @@ export default function HomePage() {
       value: stats.processingTranscripts.toString(),
       icon: Clock,
       color: 'yellow',
-      change: null
+      change: undefined
     },
     {
       title: 'Average Score',
@@ -152,27 +155,8 @@ export default function HomePage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {statCards.map((card, index) => (
-          <div key={index} className="card">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <card.icon className={`h-8 w-8 text-${card.color}-600`} />
-              </div>
-              <div className="ml-4 flex-1">
-                <p className="text-sm font-medium text-gray-500">{card.title}</p>
-                <div className="flex items-baseline">
-                  <p className="text-2xl font-semibold text-gray-900">{card.value}</p>
-                  {card.change && (
-                    <span className="ml-2 text-sm font-medium text-green-600">
-                      {card.change}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+      <div className="mb-8">
+        <StatsCards stats={statCards} />
       </div>
 
       {/* Main Content Grid */}

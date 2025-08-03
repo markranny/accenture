@@ -7,6 +7,13 @@ const nextConfig = {
     bodyParser: {
       sizeLimit: '50mb'
     }
+  },
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@': require('path').resolve(__dirname, 'src'),
+    };
+    return config;
   }
 }
 
