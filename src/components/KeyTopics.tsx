@@ -199,6 +199,24 @@ export function KeyTopics({ topics, entities }: KeyTopicsProps) {
                 <span className="ml-2 text-sm text-gray-500">({categorizedEntities.people.length})</span>
               </h3>
               <div className="flex flex-wrap gap-3">
+                {categorizedEntities.people
+                  .filter(entity => entity.toLowerCase().includes(searchTerm.toLowerCase()))
+                  .map((entity, index) => (
+                    <EntityBadge key={index} entity={entity} category="people" />
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Organizations */}
+          {categorizedEntities.organizations.length > 0 && (
+            <div className="card">
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <Building className="h-5 w-5 mr-2 text-indigo-600" />
+                Organizations
+                <span className="ml-2 text-sm text-gray-500">({categorizedEntities.organizations.length})</span>
+              </h3>
+              <div className="flex flex-wrap gap-3">
                 {categorizedEntities.organizations
                   .filter(entity => entity.toLowerCase().includes(searchTerm.toLowerCase()))
                   .map((entity, index) => (
@@ -299,22 +317,4 @@ export function KeyTopics({ topics, entities }: KeyTopicsProps) {
       </div>
     </div>
   );
-}people
-                  .filter(entity => entity.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map((entity, index) => (
-                    <EntityBadge key={index} entity={entity} category="people" />
-                  ))}
-              </div>
-            </div>
-          )}
-
-          {/* Organizations */}
-          {categorizedEntities.organizations.length > 0 && (
-            <div className="card">
-              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <Building className="h-5 w-5 mr-2 text-indigo-600" />
-                Organizations
-                <span className="ml-2 text-sm text-gray-500">({categorizedEntities.organizations.length})</span>
-              </h3>
-              <div className="flex flex-wrap gap-3">
-                {categorizedEntities.
+}

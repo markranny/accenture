@@ -36,7 +36,8 @@
     "compromise": "^14.10.0",
     "pdfkit": "^0.14.0",
     "csv-parser": "^3.0.0",
-    "csv-stringify": "^6.4.4"
+    "csv-stringify": "^6.4.4",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "@types/node": "^20.11.16",
