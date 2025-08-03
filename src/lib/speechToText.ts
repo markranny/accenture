@@ -1,9 +1,5 @@
-// Speech-to-Text Service using Web Speech API (free option)
-// For production, consider integrating with services like:
-// - Google Cloud Speech-to-Text
-// - Azure Speech Services
-// - AWS Transcribe
-// - OpenAI Whisper API
+// Real Speech-to-Text Service Implementation
+// This version removes mock data and implements actual transcription
 
 export interface TranscriptionResult {
   transcript: string;
@@ -12,134 +8,106 @@ export interface TranscriptionResult {
 }
 
 export class SpeechToTextService {
-  private recognition: any;
-  private isSupported: boolean;
+  private apiKey: string;
+  private baseUrl: string;
 
   constructor() {
-    this.isSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
-    
-    if (this.isSupported) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      this.recognition = new SpeechRecognition();
-      this.setupRecognition();
-    }
-  }
-
-  private setupRecognition() {
-    this.recognition.continuous = true;
-    this.recognition.interimResults = true;
-    this.recognition.lang = 'en-US';
-    this.recognition.maxAlternatives = 1;
+    this.apiKey = process.env.OPENAI_API_KEY || '';
+    this.baseUrl = 'https://api.openai.com/v1/audio/transcriptions';
   }
 
   async transcribeFile(file: File, progressCallback?: (progress: number) => void): Promise<TranscriptionResult> {
-    if (!this.isSupported) {
+    if (!this.apiKey) {
+      throw new Error('OpenAI API key not configured. Please set OPENAI_API_KEY in your environment variables.');
+    }
+
+    try {
+      if (progressCallback) progressCallback(10);
+
+      // Validate file type
+      const supportedTypes = ['audio/mpeg', 'audio/wav', 'audio/mp4', 'audio/aac', 'audio/x-m4a', 'video/mp4', 'video/quicktime', 'video/webm'];
+      if (!supportedTypes.includes(file.type)) {
+        throw new Error(`Unsupported file type: ${file.type}`);
+      }
+
+      // Check file size (OpenAI Whisper has a 25MB limit)
+      const maxSize = 25 * 1024 * 1024; // 25MB
+      if (file.size > maxSize) {
+        throw new Error('File size exceeds 25MB limit. Please use a smaller file or compress the audio.');
+      }
+
+      if (progressCallback) progressCallback(20);
+
+      // Prepare form data
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('model', 'whisper-1');
+      formData.append('response_format', 'verbose_json');
+      formData.append('temperature', '0');
+
+      if (progressCallback) progressCallback(30);
+
+      // Make API request
+      const response = await fetch(this.baseUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+        body: formData,
+      });
+
+      if (progressCallback) progressCallback(80);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`Transcription failed: ${errorData.error?.message || response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (progressCallback) progressCallback(100);
+
+      return {
+        transcript: result.text || '',
+        confidence: this.calculateConfidence(result.segments || []),
+        duration: result.duration || 0
+      };
+
+    } catch (error) {
+      console.error('Transcription error:', error);
+      throw error;
+    }
+  }
+
+  private calculateConfidence(segments: any[]): number {
+    if (!segments || segments.length === 0) return 0.85; // Default confidence
+
+    const avgConfidence = segments.reduce((sum, segment) => {
+      return sum + (segment.avg_logprob ? Math.exp(segment.avg_logprob) : 0.85);
+    }, 0) / segments.length;
+
+    return Math.min(1, Math.max(0, avgConfidence));
+  }
+
+  // For real-time transcription using Web Speech API (browser-based)
+  async startRealTimeTranscription(
+    onTranscript: (transcript: string, isFinal: boolean) => void,
+    onError?: (error: string) => void
+  ): Promise<void> {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
       throw new Error('Speech recognition not supported in this browser');
     }
 
-    return new Promise((resolve, reject) => {
-      const startTime = Date.now();
-      let finalTranscript = '';
-      let interimTranscript = '';
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const recognition = new SpeechRecognition();
 
-      // For file transcription, we'll use a different approach
-      // This is a simplified version - in production, you'd send the file to a server
-      this.transcribeAudioFile(file, progressCallback)
-        .then(result => resolve(result))
-        .catch(error => reject(error));
-    });
-  }
-
-  private async transcribeAudioFile(file: File, progressCallback?: (progress: number) => void): Promise<TranscriptionResult> {
-    // This is a mock implementation for demo purposes
-    // In production, you would:
-    // 1. Send the file to your backend
-    // 2. Use a proper speech-to-text service
-    // 3. Return the actual transcript
-
-    return new Promise((resolve) => {
-      // Simulate processing time
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += 10;
-        if (progressCallback) {
-          progressCallback(progress);
-        }
-        
-        if (progress >= 100) {
-          clearInterval(interval);
-          
-          // Mock transcript for demo
-          const mockTranscript = this.generateMockTranscript(file.name);
-          
-          resolve({
-            transcript: mockTranscript,
-            confidence: 0.85,
-            duration: 120 // seconds
-          });
-        }
-      }, 500);
-    });
-  }
-
-  private generateMockTranscript(filename: string): string {
-    // Generate a mock transcript for demo purposes
-    const mockTranscripts = [
-      `Hello everyone, welcome to today's presentation. I'm excited to share our quarterly results with you. 
-      
-      First, let me start by saying that this quarter has been exceptional for our team. We've achieved a 15% increase in sales compared to the previous quarter, which exceeded our initial projections by 3%.
-      
-      Our customer satisfaction scores have also improved significantly. We received an average rating of 4.7 out of 5, up from 4.3 last quarter. This improvement is directly attributed to our new customer service training program that we implemented in January.
-      
-      Looking at our key performance indicators, I want to highlight three main areas of success. First, our digital marketing campaigns generated 40% more leads than expected. Second, our product team successfully launched two new features that our customers had been requesting. And third, our retention rate improved to 94%, which is the highest we've ever achieved.
-      
-      However, we also faced some challenges that I want to address honestly. Our delivery times increased by an average of 2 days due to supply chain disruptions. We've already implemented measures to address this, including partnering with two additional suppliers and optimizing our inventory management system.
-      
-      For the upcoming quarter, our main focus will be on three strategic initiatives. We plan to expand into two new markets, invest in automation to improve our operational efficiency, and launch our new mobile application that's currently in beta testing.
-      
-      Are there any questions about our performance this quarter or our plans moving forward? I'd be happy to discuss any aspects in more detail.`,
-      
-      `Good morning team, let's dive into our project status update. 
-      
-      We're currently at 75% completion on the main development phase. The backend architecture is fully implemented and tested, and we're making excellent progress on the frontend components. 
-      
-      Our QA team has identified and resolved 23 bugs in the past week, with only 5 minor issues remaining. The performance testing shows that our application can handle up to 10,000 concurrent users, which exceeds our initial requirements.
-      
-      I want to acknowledge the outstanding work by our development team, particularly Sarah and Mike, who worked extra hours to resolve the database optimization issues we encountered last week.
-      
-      Looking ahead, we have three critical milestones approaching. The first is the user acceptance testing phase, scheduled to begin next Monday. The second is the security audit, which we need to complete before the end of this month. And finally, we have the production deployment planned for the first week of next month.
-      
-      Are there any concerns or blockers that we need to address? Let's make sure we're all aligned on the priorities for the remainder of this sprint.`,
-      
-      `Thank you for joining today's training session on effective communication strategies.
-      
-      Communication is the foundation of successful teamwork and client relationships. Today, we'll explore five key principles that can dramatically improve your professional interactions.
-      
-      The first principle is active listening. This means giving your full attention to the speaker, asking clarifying questions, and summarizing what you've heard to ensure understanding. Research shows that teams with strong listening skills are 40% more effective at problem-solving.
-      
-      The second principle is clarity in messaging. When communicating complex ideas, break them down into simple, actionable points. Use specific examples and avoid jargon that might confuse your audience.
-      
-      Third, timing matters. Choose the right moment for important conversations. Avoid addressing sensitive topics when people are stressed or distracted.
-      
-      Fourth, adapt your communication style to your audience. What works for technical stakeholders might not work for executive leadership or end users.
-      
-      Finally, follow up consistently. Confirm action items, deadlines, and next steps in writing to ensure accountability and prevent misunderstandings.
-      
-      Let's practice these principles with some role-playing exercises. Who would like to volunteer for the first scenario?`
-    ];
-    
-    // Return a random mock transcript
-    return mockTranscripts[Math.floor(Math.random() * mockTranscripts.length)];
-  }
-
-  // Real-time transcription (for live audio)
-  startRealTimeTranscription(onTranscript: (transcript: string, isFinal: boolean) => void): Promise<void> {
-    if (!this.isSupported) {
-      throw new Error('Speech recognition not supported');
-    }
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
 
     return new Promise((resolve, reject) => {
-      this.recognition.onresult = (event: any) => {
+      recognition.onresult = (event: any) => {
         let interimTranscript = '';
         let finalTranscript = '';
 
@@ -155,55 +123,141 @@ export class SpeechToTextService {
         onTranscript(finalTranscript || interimTranscript, !!finalTranscript);
       };
 
-      this.recognition.onerror = (event: any) => {
-        reject(new Error(`Speech recognition error: ${event.error}`));
+      recognition.onerror = (event: any) => {
+        const error = `Speech recognition error: ${event.error}`;
+        if (onError) onError(error);
+        reject(new Error(error));
       };
 
-      this.recognition.onend = () => {
+      recognition.onend = () => {
         resolve();
       };
 
-      this.recognition.start();
+      recognition.start();
     });
   }
 
   stopRealTimeTranscription() {
-    if (this.recognition) {
-      this.recognition.stop();
+    // This would be called from the component that manages the recognition instance
+  }
+
+  isServiceSupported(): boolean {
+    return !!this.apiKey;
+  }
+
+  // Get supported file formats
+  getSupportedFormats(): string[] {
+    return [
+      'audio/mpeg',
+      'audio/wav', 
+      'audio/mp4',
+      'audio/aac',
+      'audio/x-m4a',
+      'video/mp4',
+      'video/quicktime',
+      'video/webm'
+    ];
+  }
+
+  // Estimate processing time based on file size
+  estimateProcessingTime(fileSize: number): number {
+    // Rough estimate: 1MB = ~10 seconds processing time
+    const estimatedSeconds = Math.ceil(fileSize / (1024 * 1024)) * 10;
+    return Math.min(estimatedSeconds, 300); // Cap at 5 minutes
+  }
+}
+
+// Alternative service for Azure Speech Services
+export class AzureSpeechToTextService {
+  private subscriptionKey: string;
+  private region: string;
+  private baseUrl: string;
+
+  constructor() {
+    this.subscriptionKey = process.env.AZURE_SPEECH_KEY || '';
+    this.region = process.env.AZURE_SPEECH_REGION || 'eastus';
+    this.baseUrl = `https://${this.region}.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1`;
+  }
+
+  async transcribeFile(file: File, progressCallback?: (progress: number) => void): Promise<TranscriptionResult> {
+    if (!this.subscriptionKey) {
+      throw new Error('Azure Speech subscription key not configured.');
+    }
+
+    try {
+      if (progressCallback) progressCallback(10);
+
+      // Convert file to appropriate format for Azure
+      const audioBuffer = await file.arrayBuffer();
+      
+      if (progressCallback) progressCallback(30);
+
+      const response = await fetch(`${this.baseUrl}?language=en-US&format=detailed`, {
+        method: 'POST',
+        headers: {
+          'Ocp-Apim-Subscription-Key': this.subscriptionKey,
+          'Content-Type': 'audio/wav',
+          'Accept': 'application/json',
+        },
+        body: audioBuffer,
+      });
+
+      if (progressCallback) progressCallback(80);
+
+      if (!response.ok) {
+        throw new Error(`Azure Speech API error: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+
+      if (progressCallback) progressCallback(100);
+
+      return {
+        transcript: result.DisplayText || '',
+        confidence: result.Confidence || 0.85,
+        duration: result.Duration || 0
+      };
+
+    } catch (error) {
+      console.error('Azure transcription error:', error);
+      throw error;
     }
   }
 
   isServiceSupported(): boolean {
-    return this.isSupported;
+    return !!this.subscriptionKey;
   }
 }
 
-// Alternative API-based transcription service
-export class APITranscriptionService {
-  private apiEndpoint: string;
+// Service factory to choose the best available service
+export class TranscriptionServiceFactory {
+  static createService(): SpeechToTextService | AzureSpeechToTextService {
+    // Prefer OpenAI Whisper if available
+    const openaiService = new SpeechToTextService();
+    if (openaiService.isServiceSupported()) {
+      return openaiService;
+    }
 
-  constructor(apiEndpoint: string = '/api/transcribe') {
-    this.apiEndpoint = apiEndpoint;
+    // Fall back to Azure if available
+    const azureService = new AzureSpeechToTextService();
+    if (azureService.isServiceSupported()) {
+      return azureService;
+    }
+
+    throw new Error('No speech-to-text service configured. Please set up OpenAI or Azure Speech API keys.');
   }
 
-  async transcribeFile(file: File, progressCallback?: (progress: number) => void): Promise<TranscriptionResult> {
-    const formData = new FormData();
-    formData.append('audio', file);
-
-    try {
-      const response = await fetch(this.apiEndpoint, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Transcription failed');
-      }
-
-      const result = await response.json();
-      return result;
-    } catch (error) {
-      throw new Error(`Transcription error: ${error}`);
+  static getSupportedServices(): string[] {
+    const services = [];
+    
+    if (new SpeechToTextService().isServiceSupported()) {
+      services.push('OpenAI Whisper');
     }
+    
+    if (new AzureSpeechToTextService().isServiceSupported()) {
+      services.push('Azure Speech');
+    }
+
+    return services;
   }
 }

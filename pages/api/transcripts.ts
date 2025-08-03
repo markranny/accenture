@@ -80,8 +80,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const [countRows] = await connection.execute(countQuery, countParams);
     const total = (countRows as any[])[0].total;
 
+    // Format the response to match expected structure
+    const transcripts = (rows as any[]).map(row => ({
+      id: row.id,
+      filename: row.filename,
+      originalFilename: row.original_filename,
+      fileType: row.file_type,
+      fileSize: row.file_size,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      overallScore: row.overall_score ? parseFloat(row.overall_score) : null
+    }));
+
+    // If no limit specified, return just the transcripts array for compatibility
+    if (!limit) {
+      res.status(200).json({ transcripts });
+      return;
+    }
+
     res.status(200).json({
-      transcripts: rows,
+      transcripts,
       pagination: {
         total,
         limit: limit ? parseInt(limit as string) : null,
